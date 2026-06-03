@@ -2,19 +2,24 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from .database import SessionLocal, Area, Indicator, Score
+from backend.database import SessionLocal, engine   # ✅ only DB setup here
+from backend import models                               # ✅ all models come from models.py
+
+# Ensure tables exist in SQLite
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="CityPulse Urban Intelligence")
 
+# Allow React dev server to call backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # React dev server
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Dependency
+# Dependency: DB session
 def get_db():
     db = SessionLocal()
     try:
@@ -22,20 +27,38 @@ def get_db():
     finally:
         db.close()
 
+
+# -------------------------------
+# Area Profile
+# -------------------------------
 @app.get("/area-profile/{area_id}")
 def get_area_profile(area_id: int, db: Session = Depends(get_db)):
-    area = db.query(Area).filter(Area.id == area_id).first()
-    if area:
-        return {"id": area.id, "name": area.name}
-    return {"error": "Area not found"}
+    area = db.query(models.Area).filter(models.Area.id == area_id).first()
+    indicators = db.query(models.Indicator).filter(models.Indicator.area_id == area_id).first()
+    if not area:
+        return {"error": "Area not found"}
+    return {
+        "id": area.id,
+        "name": area.name,
+        "indicators": {
+            "population": indicators.population if indicators else None,
+            "mobility_score": indicators.mobility_score if indicators else None,
+            "environment_score": indicators.environment_score if indicators else None,
+            "infrastructure_score": indicators.infrastructure_score if indicators else None,
+            "business_activity_score": indicators.business_activity_score if indicators else None,
+        },
+    }
 
+
+# -------------------------------
+# Urban Health Score
+# -------------------------------
 @app.get("/urban-health-score/{area_id}")
 def get_health_score(area_id: int, db: Session = Depends(get_db)):
-    indicators = db.query(Indicator).filter(Indicator.area_id == area_id).first()
+    indicators = db.query(models.Indicator).filter(models.Indicator.area_id == area_id).first()
     if not indicators:
         return {"error": "No indicators found for this area"}
 
-    # Define weights (adjust later as needed)
     weights = {
         "population": 0.1,
         "mobility_score": 0.25,
@@ -44,10 +67,8 @@ def get_health_score(area_id: int, db: Session = Depends(get_db)):
         "business_activity_score": 0.2,
     }
 
-    # Normalize population (simple demo: divide by 100k)
     pop_factor = (indicators.population or 0) / 100000
 
-    # Weighted sum
     score = (
         pop_factor * weights["population"]
         + (indicators.mobility_score or 0) * weights["mobility_score"]
@@ -56,28 +77,31 @@ def get_health_score(area_id: int, db: Session = Depends(get_db)):
         + (indicators.business_activity_score or 0) * weights["business_activity_score"]
     )
 
-    # Save to scores table (optional)
-    existing = db.query(Score).filter(Score.area_id == area_id).first()
+    existing = db.query(models.Score).filter(models.Score.area_id == area_id).first()
     if existing:
         existing.health_score = score
     else:
-        db.add(Score(area_id=area_id, health_score=score))
+        db.add(models.Score(area_id=area_id, health_score=score))
     db.commit()
 
     return {"area_id": area_id, "urban_health_score": round(score, 2)}
 
+
+# -------------------------------
+# Compare Areas
+# -------------------------------
 @app.get("/compare-areas")
 def compare_areas(area1: int, area2: int, db: Session = Depends(get_db)):
-    a1 = db.query(Area).filter(Area.id == area1).first()
-    a2 = db.query(Area).filter(Area.id == area2).first()
+    a1 = db.query(models.Area).filter(models.Area.id == area1).first()
+    a2 = db.query(models.Area).filter(models.Area.id == area2).first()
     if not a1 or not a2:
         return {"error": "One or both areas not found"}
 
-    ind1 = db.query(Indicator).filter(Indicator.area_id == area1).first()
-    ind2 = db.query(Indicator).filter(Indicator.area_id == area2).first()
+    ind1 = db.query(models.Indicator).filter(models.Indicator.area_id == area1).first()
+    ind2 = db.query(models.Indicator).filter(models.Indicator.area_id == area2).first()
 
-    score1 = db.query(Score).filter(Score.area_id == area1).first()
-    score2 = db.query(Score).filter(Score.area_id == area2).first()
+    score1 = db.query(models.Score).filter(models.Score.area_id == area1).first()
+    score2 = db.query(models.Score).filter(models.Score.area_id == area2).first()
 
     return {
         "area1": {
@@ -95,7 +119,7 @@ def compare_areas(area1: int, area2: int, db: Session = Depends(get_db)):
                 "growth_index": score1.growth_index if score1 else None,
                 "infra_index": score1.infra_index if score1 else None,
                 "opportunity_score": score1.opportunity_score if score1 else None,
-            }
+            },
         },
         "area2": {
             "id": a2.id,
@@ -112,61 +136,45 @@ def compare_areas(area1: int, area2: int, db: Session = Depends(get_db)):
                 "growth_index": score2.growth_index if score2 else None,
                 "infra_index": score2.infra_index if score2 else None,
                 "opportunity_score": score2.opportunity_score if score2 else None,
-            }
-        }
+            },
+        },
     }
 
-# Request model for Opportunity Engine
+
+# -------------------------------
+# Opportunity Engine
+# -------------------------------
 class OpportunityRequest(BaseModel):
     business_type: str
     industry: str
 
 @app.post("/opportunity-engine")
-def opportunity_engine(req: OpportunityRequest, db: Session = Depends(get_db)):
-    business_type = req.business_type
-    industry = req.industry
+def opportunity_engine(request: OpportunityRequest, db: Session = Depends(get_db)):
+    # Query opportunities for the given industry
+    opportunities = (
+        db.query(models.Opportunity)
+        .filter(models.Opportunity.industry == request.industry)
+        .all()
+    )
 
-    areas = db.query(Area).all()
-    results = []
+    # If no opportunities found, return a message
+    if not opportunities:
+        return {
+            "business_type": request.business_type,
+            "industry": request.industry,
+            "ranked_opportunities": [],
+            "message": "No opportunities found for this industry"
+        }
 
-    # Industry-specific weights
-    if industry.lower() == "food":
-        weights = {"population":0.5, "mobility":0.3, "environment":0.0, "infrastructure":0.0, "business_activity":-0.2}
-    elif industry.lower() == "tech":
-        weights = {"population":0.3, "mobility":0.0, "environment":0.3, "infrastructure":0.4, "business_activity":0.0}
-    elif industry.lower() == "retail":
-        weights = {"population":0.4, "mobility":0.3, "environment":0.0, "infrastructure":0.0, "business_activity":-0.3}
-    else:
-        weights = {"population":0.4, "mobility":0.3, "environment":0.0, "infrastructure":0.0, "business_activity":-0.3}
-
-    # Calculate scores per area
-    for area in areas:
-        ind = db.query(Indicator).filter(Indicator.area_id == area.id).first()
-        if not ind:
-            continue
-
-        score = (
-            (ind.population or 0)/100000 * weights["population"]
-            + (ind.mobility_score or 0) * weights["mobility"]
-            + (ind.environment_score or 0) * weights["environment"]
-            + (ind.infrastructure_score or 0) * weights["infrastructure"]
-            + (ind.business_activity_score or 0) * weights["business_activity"]
-        )
-
-        results.append({"area": area.name, "opportunity_score": round(score, 2)})
-
-        # Save to scores table
-        existing = db.query(Score).filter(Score.area_id == area.id).first()
-        if existing:
-            existing.opportunity_score = score
-        else:
-            db.add(Score(area_id=area.id, opportunity_score=score))
-    db.commit()
-
-    ranked = sorted(results, key=lambda x: x["opportunity_score"], reverse=True)
+    # Sort descending by opportunity_score
+    ranked = sorted(
+        [{"area": o.area, "opportunity_score": round(o.opportunity_score, 2)} for o in opportunities],
+        key=lambda x: x["opportunity_score"],
+        reverse=True,
+    )
 
     return {
-        "business_type": business_type,
-        "industry": industry,
-        "ranked_opportunities": ranked
+        "business_type": request.business_type,
+        "industry": request.industry,
+        "ranked_opportunities": ranked,
     }
