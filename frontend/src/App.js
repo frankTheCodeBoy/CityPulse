@@ -1,115 +1,76 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
-  Container,
-  Card,
-  CardContent,
-  Typography,
-  Button,
-  Select,
-  MenuItem,
-  ThemeProvider,
-  createTheme,
-  CssBaseline,
-  IconButton,
-  CircularProgress,
-  Snackbar,
-  Alert,
+  Container, Card, CardContent, Typography, Button, Select, MenuItem,
+  ThemeProvider, createTheme, CssBaseline, IconButton, CircularProgress,
+  Snackbar, Alert
 } from "@mui/material";
 import { Brightness4, Brightness7 } from "@mui/icons-material";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
+  Tooltip, BarChart, Bar, XAxis, YAxis
 } from "recharts";
-
-// Import mock data
-import { mockAreaProfile, mockCompareData, mockOpportunity } from "./mockData";
-
-// Theme generator
-const getTheme = (mode) =>
-  createTheme({
-    palette: {
-      mode,
-      ...(mode === "dark"
-        ? {
-            primary: { main: "#00e5ff" },
-            secondary: { main: "#ff4081" },
-            background: { default: "#121212", paper: "#1e1e1e" },
-            text: { primary: "#ffffff", secondary: "#b0bec5" },
-          }
-        : {
-            primary: { main: "#1976d2" },
-            secondary: { main: "#d32f2f" },
-            background: { default: "#fafafa", paper: "#ffffff" },
-            text: { primary: "#000000", secondary: "#555555" },
-          }),
-    },
-    typography: {
-      fontFamily: "Roboto, Arial, sans-serif",
-      h4: { fontWeight: 700, letterSpacing: 1.2 },
-      h6: { fontWeight: 600 },
-    },
-  });
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 function App() {
+  const [mode, setMode] = useState("light");
+  const [areas, setAreas] = useState([]);
+  const [industries, setIndustries] = useState([]);
+  const [profileArea, setProfileArea] = useState(null);
   const [areaProfile, setAreaProfile] = useState(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [area1, setArea1] = useState(null);
+  const [area2, setArea2] = useState(null);
   const [compareData, setCompareData] = useState(null);
-  const [industry, setIndustry] = useState("Food");
+  const [loadingCompare, setLoadingCompare] = useState(false);
+  const [industry, setIndustry] = useState("");
   const [opportunity, setOpportunity] = useState(null);
-  const [mode, setMode] = useState("dark");
-  const [area1, setArea1] = useState(1);
-  const [area2, setArea2] = useState(2);
-  const [error, setError] = useState(null);
-  const [loadingProfile, setLoadingProfile] = useState(true);
-  const [loadingCompare, setLoadingCompare] = useState(true);
   const [loadingOpportunity, setLoadingOpportunity] = useState(false);
+  const [error, setError] = useState(null);
+  const dashboardRef = useRef();
 
-  // Load saved theme
+  // Theme
+  const getTheme = (mode) =>
+    createTheme({
+      palette: { mode },
+    });
+
+  // Fetch Areas
   useEffect(() => {
-    const savedMode = localStorage.getItem("themeMode");
-    if (savedMode) setMode(savedMode);
+    fetch("http://localhost:8000/areas")
+      .then((res) => res.json())
+      .then(setAreas)
+      .catch(() => setError("Failed to load areas"));
   }, []);
+
+  // Fetch Industries
   useEffect(() => {
-    localStorage.setItem("themeMode", mode);
-  }, [mode]);
+    fetch("http://localhost:8000/industries")
+      .then((res) => res.json())
+      .then(setIndustries)
+      .catch(() => setError("Failed to load industries"));
+  }, []);
 
   // Fetch Area Profile
   useEffect(() => {
-    setLoadingProfile(true);
-    fetch("http://127.0.0.1:8000/area-profile/1")
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to load Area Profile");
-        return res.json();
-      })
-      .then(setAreaProfile)
-      .catch((err) => {
-        setError(err.message);
-        setAreaProfile(mockAreaProfile); // fallback
-      })
-      .finally(() => setLoadingProfile(false));
-  }, []);
+    if (profileArea) {
+      setLoadingProfile(true);
+      fetch(`http://localhost:8000/area-profile/${profileArea}`)
+        .then((res) => res.json())
+        .then(setAreaProfile)
+        .catch(() => setAreaProfile(null))
+        .finally(() => setLoadingProfile(false));
+    }
+  }, [profileArea]);
 
-  // Fetch Compare Areas dynamically
+  // Fetch Compare Areas
   useEffect(() => {
     if (area1 && area2) {
       setLoadingCompare(true);
-      fetch(`http://127.0.0.1:8000/compare-areas?area1=${area1}&area2=${area2}`)
-        .then((res) => {
-          if (!res.ok) throw new Error("Failed to load Compare Areas");
-          return res.json();
-        })
+      fetch(`http://localhost:8000/compare-areas?area1=${area1}&area2=${area2}`)
+        .then((res) => res.json())
         .then(setCompareData)
-        .catch((err) => {
-          setError(err.message);
-          setCompareData(mockCompareData); // fallback
-        })
+        .catch(() => setCompareData(null))
         .finally(() => setLoadingCompare(false));
     }
   }, [area1, area2]);
@@ -117,21 +78,28 @@ function App() {
   // Run Opportunity Engine
   const runEngine = () => {
     setLoadingOpportunity(true);
-    fetch("http://127.0.0.1:8000/opportunity-engine", {
+    fetch("http://localhost:8000/opportunity-engine", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ business_type: "Demo", industry }),
     })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to run Opportunity Engine");
-        return res.json();
-      })
+      .then((res) => res.json())
       .then(setOpportunity)
-      .catch((err) => {
-        setError(err.message);
-        setOpportunity(mockOpportunity); // fallback
-      })
+      .catch(() => setOpportunity(null))
       .finally(() => setLoadingOpportunity(false));
+  };
+
+  // Print dashboard
+  const handlePrint = async () => {
+    const element = dashboardRef.current;
+    const canvas = await html2canvas(element);
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("p", "mm", "a4");
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+    pdf.save("CityPulse-Dashboard.pdf");
   };
 
   return (
@@ -151,106 +119,170 @@ function App() {
           {mode === "dark" ? <Brightness7 /> : <Brightness4 />}
         </IconButton>
 
-        {/* Error Display */}
+        {/* Print Button */}
+        <Button variant="contained" color="secondary" onClick={handlePrint} sx={{ mb: 3 }}>
+          Print Dashboard
+        </Button>
+
         {error && <Alert severity="error">{error}</Alert>}
 
-        {/* Area Profile */}
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Typography variant="h6">Area Profile</Typography>
-            {areaProfile ? (
-              <>
-                <Typography>ID: {areaProfile.id}</Typography>
-                <Typography>Name: {areaProfile.name}</Typography>
-              </>
-            ) : loadingProfile ? (
-              <CircularProgress />
-            ) : null}
-          </CardContent>
-        </Card>
-
-        {/* Compare Areas */}
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Typography variant="h6">Compare Areas</Typography>
-            <Select value={area1} onChange={(e) => setArea1(e.target.value)} sx={{ mr: 2 }}>
-              <MenuItem value={1}>CBD</MenuItem>
-              <MenuItem value={2}>Westlands</MenuItem>
-              <MenuItem value={3}>Industrial Area</MenuItem>
-            </Select>
-            <Select value={area2} onChange={(e) => setArea2(e.target.value)} sx={{ mr: 2 }}>
-              <MenuItem value={1}>CBD</MenuItem>
-              <MenuItem value={2}>Westlands</MenuItem>
-              <MenuItem value={3}>Industrial Area</MenuItem>
-            </Select>
-
-            {compareData ? (
-              <RadarChart outerRadius={90} width={500} height={300} data={[
-                { indicator: "Population", A: compareData.area1.indicators.population / 200000, B: compareData.area2.indicators.population / 200000 },
-                { indicator: "Mobility", A: compareData.area1.indicators.mobility_score, B: compareData.area2.indicators.mobility_score },
-                { indicator: "Environment", A: compareData.area1.indicators.environment_score, B: compareData.area2.indicators.environment_score },
-                { indicator: "Infrastructure", A: compareData.area1.indicators.infrastructure_score, B: compareData.area2.indicators.infrastructure_score },
-                { indicator: "Business", A: compareData.area1.indicators.business_activity_score, B: compareData.area2.indicators.business_activity_score },
-              ]}>
-                <PolarGrid />
-                <PolarAngleAxis dataKey="indicator" />
-                <PolarRadiusAxis angle={30} domain={[0, 1]} />
-                <Radar name={compareData.area1.name} dataKey="A" stroke={mode === "dark" ? "#00e5ff" : "#1976d2"} fill={mode === "dark" ? "#00e5ff" : "#1976d2"} fillOpacity={0.6} />
-                <Radar name={compareData.area2.name} dataKey="B" stroke={mode === "dark" ? "#ff4081" : "#d32f2f"} fill={mode === "dark" ? "#ff4081" : "#d32f2f"} fillOpacity={0.6} />
-                <Tooltip />
-              </RadarChart>
-            ) : loadingCompare ? (
-              <CircularProgress />
-            ) : null}
-          </CardContent>
-        </Card>
-       {/* Opportunity Engine */}
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Typography variant="h6">Opportunity Engine</Typography>
-            <Select
-              value={industry}
-              onChange={(e) => setIndustry(e.target.value)}
-              sx={{ mr: 2 }}
-            >
-              <MenuItem value="Food">Food</MenuItem>
-              <MenuItem value="Tech">Tech</MenuItem>
-              <MenuItem value="Retail">Retail</MenuItem>
-            </Select>
-            <Button variant="contained" onClick={runEngine}>
-              Run
-            </Button>
-            {opportunity ? (
-              <BarChart
-                width={500}
-                height={300}
-                data={opportunity.ranked_opportunities}
+        <div ref={dashboardRef}>
+          {/* Area Profile */}
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Typography variant="h6">Area Profile</Typography>
+              <Select
+                value={profileArea || ""}
+                onChange={(e) => setProfileArea(e.target.value)}
+                sx={{ mb: 2 }}
               >
-                <XAxis
-                  dataKey="area"
-                  stroke={mode === "dark" ? "#ffffff" : "#000000"}
-                />
-                <YAxis stroke={mode === "dark" ? "#ffffff" : "#000000"} />
-                <Tooltip />
-                <Bar
-                  dataKey="opportunity_score"
-                  fill={mode === "dark" ? "#00e5ff" : "#1976d2"}
-                />
-              </BarChart>
-            ) : loadingOpportunity ? (
-              <CircularProgress />
-            ) : null}
-          </CardContent>
-        </Card>
+                {areas.map((a) => (
+                  <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>
+                ))}
+              </Select>
+              {areaProfile ? (
+                <>
+                  <Typography>ID: {areaProfile.id}</Typography>
+                  <Typography>Name: {areaProfile.name}</Typography>
+                </>
+              ) : loadingProfile ? (
+                <CircularProgress />
+              ) : (
+                <Typography color="textSecondary">Select an area to analyze.</Typography>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Compare Areas */}
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Typography variant="h6">Compare Areas</Typography>
+              <Select value={area1 || ""} onChange={(e) => setArea1(e.target.value)} sx={{ mr: 2 }}>
+                {areas.map((a) => (
+                  <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>
+                ))}
+              </Select>
+              <Select value={area2 || ""} onChange={(e) => setArea2(e.target.value)} sx={{ mr: 2 }}>
+                {areas.map((a) => (
+                  <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>
+                ))}
+              </Select>
+
+              {compareData ? (
+                <RadarChart
+                  outerRadius={90}
+                  width={500}
+                  height={300}
+                  data={[
+                    {
+                      indicator: "Population",
+                      A: compareData.area1.indicators.population / 200000,
+                      B: compareData.area2.indicators.population / 200000,
+                    },
+                    {
+                      indicator: "Mobility",
+                      A: compareData.area1.indicators.mobility_score,
+                      B: compareData.area2.indicators.mobility_score,
+                    },
+                    {
+                      indicator: "Environment",
+                      A: compareData.area1.indicators.environment_score,
+                      B: compareData.area2.indicators.environment_score,
+                    },
+                    {
+                      indicator: "Infrastructure",
+                      A: compareData.area1.indicators.infrastructure_score,
+                      B: compareData.area2.indicators.infrastructure_score,
+                    },
+                    {
+                      indicator: "Business",
+                      A: compareData.area1.indicators.business_activity_score,
+                      B: compareData.area2.indicators.business_activity_score,
+                    },
+                  ]}
+                >
+                  <PolarGrid />
+                  <PolarAngleAxis dataKey="indicator" />
+                  <PolarRadiusAxis angle={30} domain={[0, 1]} />
+                  <Radar
+                    name={compareData.area1.name}
+                    dataKey="A"
+                    stroke={mode === "dark" ? "#00e5ff" : "#00695c"}
+                    fill={mode === "dark" ? "#00e5ff" : "#00695c"}
+                    fillOpacity={0.6}
+                  />
+                  <Radar
+                    name={compareData.area2.name}
+                    dataKey="B"
+                    stroke={mode === "dark" ? "#ff4081" : "#ff8f00"}
+                    fill={mode === "dark" ? "#ff4081" : "#ff8f00"}
+                    fillOpacity={0.6}
+                  />
+                  <Tooltip />
+                </RadarChart>
+              ) : loadingCompare ? (
+                <CircularProgress />
+              ) : (
+                <Typography color="textSecondary">Choose two areas to compare.</Typography>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Opportunity Engine */}
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Typography variant="h6">Opportunity Engine</Typography>
+              <Select
+                value={industry || ""}
+                onChange={(e) => setIndustry(e.target.value)}
+                sx={{ mr: 2 }}
+              >
+                {industries.map((ind, idx) => (
+                  <MenuItem key={idx} value={ind}>{ind}</MenuItem>
+                ))}
+              </Select>
+              <Button variant="contained" onClick={runEngine}>
+                Run
+              </Button>
+                {opportunity ? (
+                <BarChart
+                  width={500}
+                  height={300}
+                  data={opportunity.ranked_opportunities}
+                >
+                  <XAxis
+                    dataKey="area"
+                    stroke={mode === "dark" ? "#ffffff" : "#000000"}
+                  />
+                  <YAxis stroke={mode === "dark" ? "#ffffff" : "#000000"} />
+                  <Tooltip />
+                  <Bar
+                    dataKey="opportunity_score"
+                    fill={mode === "dark" ? "#00e5ff" : "#00695c"}
+                  />
+                </BarChart>
+              ) : loadingOpportunity ? (
+                <CircularProgress />
+              ) : (
+                <Typography color="textSecondary">
+                  Select an industry and run analysis.
+                </Typography>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Error Snackbar */}
         <Snackbar
           open={!!error}
           autoHideDuration={4000}
           onClose={() => setError(null)}
-          message={`Oops! Something went wrong: ${error}`}
-          anchorOrigin={{ vertical: "bottom", horizontal: "center" }} // ✅ position
-        />
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        >
+          <Alert severity="error" onClose={() => setError(null)}>
+            Oops! Something went wrong: {error}
+          </Alert>
+        </Snackbar>
       </Container>
     </ThemeProvider>
   );

@@ -2,18 +2,18 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from backend.database import SessionLocal, engine   # ✅ only DB setup here
-from backend import models                               # ✅ all models come from models.py
+from backend.database import SessionLocal, engine
+from backend import models
 
-# Ensure tables exist in SQLite
+# Ensure tables exist
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="CityPulse Urban Intelligence")
 
-# Allow React dev server to call backend
+# Allow React dev server
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -35,8 +35,14 @@ def get_db():
 def get_area_profile(area_id: int, db: Session = Depends(get_db)):
     area = db.query(models.Area).filter(models.Area.id == area_id).first()
     indicators = db.query(models.Indicator).filter(models.Indicator.area_id == area_id).first()
+
     if not area:
-        return {"error": "Area not found"}
+        return {
+            "id": area_id,
+            "name": "Select an area to analyze",
+            "indicators": {}
+        }
+
     return {
         "id": area.id,
         "name": area.name,
@@ -57,7 +63,7 @@ def get_area_profile(area_id: int, db: Session = Depends(get_db)):
 def get_health_score(area_id: int, db: Session = Depends(get_db)):
     indicators = db.query(models.Indicator).filter(models.Indicator.area_id == area_id).first()
     if not indicators:
-        return {"error": "No indicators found for this area"}
+        return {"message": "Select an area to calculate health score"}
 
     weights = {
         "population": 0.1,
@@ -95,7 +101,7 @@ def compare_areas(area1: int, area2: int, db: Session = Depends(get_db)):
     a1 = db.query(models.Area).filter(models.Area.id == area1).first()
     a2 = db.query(models.Area).filter(models.Area.id == area2).first()
     if not a1 or not a2:
-        return {"error": "One or both areas not found"}
+        return {"message": "Choose two areas to compare"}
 
     ind1 = db.query(models.Indicator).filter(models.Indicator.area_id == area1).first()
     ind2 = db.query(models.Indicator).filter(models.Indicator.area_id == area2).first()
@@ -150,23 +156,19 @@ class OpportunityRequest(BaseModel):
 
 @app.post("/opportunity-engine")
 def opportunity_engine(request: OpportunityRequest, db: Session = Depends(get_db)):
-    # Query opportunities for the given industry
     opportunities = (
         db.query(models.Opportunity)
         .filter(models.Opportunity.industry == request.industry)
         .all()
     )
-
-    # If no opportunities found, return a message
     if not opportunities:
         return {
             "business_type": request.business_type,
             "industry": request.industry,
             "ranked_opportunities": [],
-            "message": "No opportunities found for this industry"
+            "message": "Select an industry and run analysis",
         }
 
-    # Sort descending by opportunity_score
     ranked = sorted(
         [{"area": o.area, "opportunity_score": round(o.opportunity_score, 2)} for o in opportunities],
         key=lambda x: x["opportunity_score"],
@@ -178,3 +180,22 @@ def opportunity_engine(request: OpportunityRequest, db: Session = Depends(get_db
         "industry": request.industry,
         "ranked_opportunities": ranked,
     }
+
+
+# -------------------------------
+# NEW: Areas list for dropdown
+# -------------------------------
+@app.get("/areas")
+def list_areas(db: Session = Depends(get_db)):
+    """Return all areas with id and name for dropdowns."""
+    return [{"id": a.id, "name": a.name} for a in db.query(models.Area).all()]
+
+
+# -------------------------------
+# NEW: Industries list for dropdown
+# -------------------------------
+@app.get("/industries")
+def list_industries(db: Session = Depends(get_db)):
+    """Return distinct industries from opportunities for dropdowns."""
+    industries = db.query(models.Opportunity.industry).distinct().all()
+    return [i[0] for i in industries]
