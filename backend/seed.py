@@ -15,7 +15,12 @@ db = SessionLocal()
 # -------------------------------
 # Seed Areas
 # -------------------------------
-areas = ["CBD", "Westlands", "Kilimani", "Karen", "Ruiru", "Kibera", "Dagoretti"]
+areas = [
+    "CBD", "Westlands", "Kilimani", "Karen", "Ruiru",
+    "Kibera", "Dagoretti",
+    "Embakasi", "Kasarani", "Upperhill", "Lavington",
+    "South B", "South C", "Mathare"
+]
 area_objs = {}
 
 for name in areas:
@@ -43,6 +48,20 @@ sample_indicators = {
                "infrastructure_score": 0.5, "business_activity_score": 0.6},
     "Dagoretti": {"population": 130000, "mobility_score": 0.55, "environment_score": 0.6,
                   "infrastructure_score": 0.65, "business_activity_score": 0.7},
+    "Embakasi": {"population": 300000, "mobility_score": 0.5, "environment_score": 0.55,
+                 "infrastructure_score": 0.6, "business_activity_score": 0.65},
+    "Kasarani": {"population": 220000, "mobility_score": 0.58, "environment_score": 0.6,
+                 "infrastructure_score": 0.62, "business_activity_score": 0.68},
+    "Upperhill": {"population": 90000, "mobility_score": 0.7, "environment_score": 0.65,
+                  "infrastructure_score": 0.75, "business_activity_score": 0.85},
+    "Lavington": {"population": 110000, "mobility_score": 0.6, "environment_score": 0.7,
+                  "infrastructure_score": 0.68, "business_activity_score": 0.72},
+    "South B": {"population": 95000, "mobility_score": 0.55, "environment_score": 0.6,
+                "infrastructure_score": 0.65, "business_activity_score": 0.7},
+    "South C": {"population": 100000, "mobility_score": 0.57, "environment_score": 0.62,
+                "infrastructure_score": 0.66, "business_activity_score": 0.71},
+    "Mathare": {"population": 270000, "mobility_score": 0.35, "environment_score": 0.4,
+                "infrastructure_score": 0.45, "business_activity_score": 0.5},
 }
 
 for name, data in sample_indicators.items():
@@ -59,6 +78,13 @@ sample_scores = {
     "Ruiru": {"health_score": 0.72, "growth_index": 0.73, "infra_index": 0.74, "opportunity_score": 0.71},
     "Kibera": {"health_score": 0.65, "growth_index": 0.68, "infra_index": 0.6, "opportunity_score": 0.66},
     "Dagoretti": {"health_score": 0.71, "growth_index": 0.72, "infra_index": 0.7, "opportunity_score": 0.72},
+    "Embakasi": {"health_score": 0.69, "growth_index": 0.71, "infra_index": 0.68, "opportunity_score": 0.7},
+    "Kasarani": {"health_score": 0.72, "growth_index": 0.74, "infra_index": 0.7, "opportunity_score": 0.73},
+    "Upperhill": {"health_score": 0.75, "growth_index": 0.78, "infra_index": 0.76, "opportunity_score": 0.8},
+    "Lavington": {"health_score": 0.73, "growth_index": 0.75, "infra_index": 0.72, "opportunity_score": 0.74},
+    "South B": {"health_score": 0.7, "growth_index": 0.72, "infra_index": 0.69, "opportunity_score": 0.71},
+    "South C": {"health_score": 0.71, "growth_index": 0.73, "infra_index": 0.7, "opportunity_score": 0.72},
+    "Mathare": {"health_score": 0.6, "growth_index": 0.62, "infra_index": 0.55, "opportunity_score": 0.58},
 }
 
 for name, data in sample_scores.items():
@@ -67,34 +93,17 @@ for name, data in sample_scores.items():
 # -------------------------------
 # Seed Opportunities
 # -------------------------------
-sample_opportunities = [
-    # Food
-    {"area": "CBD", "industry": "Food", "opportunity_score": 0.85},
-    {"area": "Westlands", "industry": "Food", "opportunity_score": 0.78},
-    {"area": "Kilimani", "industry": "Food", "opportunity_score": 0.72},
-    {"area": "Karen", "industry": "Food", "opportunity_score": 0.69},
-    {"area": "Ruiru", "industry": "Food", "opportunity_score": 0.71},
-    {"area": "Kibera", "industry": "Food", "opportunity_score": 0.67},
-    {"area": "Dagoretti", "industry": "Food", "opportunity_score": 0.72},
+sample_opportunities = []
 
-    # Tech
-    {"area": "CBD", "industry": "Tech", "opportunity_score": 0.82},
-    {"area": "Westlands", "industry": "Tech", "opportunity_score": 0.76},
-    {"area": "Kilimani", "industry": "Tech", "opportunity_score": 0.70},
-    {"area": "Karen", "industry": "Tech", "opportunity_score": 0.65},
-    {"area": "Ruiru", "industry": "Tech", "opportunity_score": 0.73},
-    {"area": "Kibera", "industry": "Tech", "opportunity_score": 0.64},
-    {"area": "Dagoretti", "industry": "Tech", "opportunity_score": 0.71},
+industries = ["Food", "Tech", "Retail"]
 
-    # Retail
-    {"area": "CBD", "industry": "Retail", "opportunity_score": 0.83},
-    {"area": "Westlands", "industry": "Retail", "opportunity_score": 0.76},
-    {"area": "Kilimani", "industry": "Retail", "opportunity_score": 0.71},
-    {"area": "Karen", "industry": "Retail", "opportunity_score": 0.68},
-    {"area": "Ruiru", "industry": "Retail", "opportunity_score": 0.72},
-    {"area": "Kibera", "industry": "Retail", "opportunity_score": 0.66},
-    {"area": "Dagoretti", "industry": "Retail", "opportunity_score": 0.7},
-]
+for area in areas:
+    for industry in industries:
+        sample_opportunities.append({
+            "area": area,
+            "industry": industry,
+            "opportunity_score": round(0.6 + hash(area+industry) % 30 / 100, 2)  # simple varied scores
+        })
 
 for opp in sample_opportunities:
     db.add(Opportunity(**opp))
