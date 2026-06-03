@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -10,10 +11,28 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="CityPulse Urban Intelligence")
 
-# Allow React dev server
+# CORS Configuration
+# Local development + production domains
+DEVELOPMENT_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+PRODUCTION_ORIGINS = [
+    "https://citypulse.vercel.app",
+    "https://citypulse.pages.dev",
+]
+
+# Get environment-specific origins
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+if ENVIRONMENT == "production":
+    allow_origins = DEVELOPMENT_ORIGINS + PRODUCTION_ORIGINS
+else:
+    allow_origins = DEVELOPMENT_ORIGINS
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
