@@ -3,13 +3,25 @@ from sqlalchemy.orm import relationship
 from backend.database import Base
 
 
-class Area(Base):
-    __tablename__ = "areas"
+class City(Base):
+    __tablename__ = "cities"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
 
     # Relationships
-    indicators = relationship("Indicator", back_populates="area", uselist=False)
+    areas = relationship("Area", back_populates="city")
+
+
+class Area(Base):
+    __tablename__ = "areas"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    city_id = Column(Integer, ForeignKey("cities.id"))
+
+    # Relationships
+    city = relationship("City", back_populates="areas")
+    indicators = relationship("Indicator", back_populates="area",
+                              uselist=False)
     scores = relationship("Score", back_populates="area", uselist=False)
 
 

@@ -20,6 +20,8 @@ app.add_middleware(
 )
 
 # Dependency: DB session
+
+
 def get_db():
     db = SessionLocal()
     try:
@@ -28,13 +30,49 @@ def get_db():
         db.close()
 
 
-# -------------------------------
+# -----------------------------------------------
+# Cities
+# -----------------------------------------------
+
+
+@app.get("/cities")
+def list_cities(db: Session = Depends(get_db)):
+    """Return all cities for city selector."""
+    return [
+        {"id": c.id, "name": c.name}
+        for c in db.query(models.City).all()
+    ]
+
+
+# -----------------------------------------------
+# Areas by City
+# -----------------------------------------------
+
+
+@app.get("/areas/{city_id}")
+def list_areas_by_city(city_id: int, db: Session = Depends(get_db)):
+    """Return areas belonging to a specific city."""
+    return [
+        {"id": a.id, "name": a.name}
+        for a in db.query(models.Area).filter(
+            models.Area.city_id == city_id
+        ).all()
+    ]
+
+
+# -----------------------------------------------
 # Area Profile
-# -------------------------------
+# -----------------------------------------------
+
+
 @app.get("/area-profile/{area_id}")
 def get_area_profile(area_id: int, db: Session = Depends(get_db)):
-    area = db.query(models.Area).filter(models.Area.id == area_id).first()
-    indicators = db.query(models.Indicator).filter(models.Indicator.area_id == area_id).first()
+    area = db.query(models.Area).filter(
+        models.Area.id == area_id
+    ).first()
+    indicators = db.query(models.Indicator).filter(
+        models.Indicator.area_id == area_id
+    ).first()
 
     if not area:
         return {
@@ -47,21 +85,31 @@ def get_area_profile(area_id: int, db: Session = Depends(get_db)):
         "id": area.id,
         "name": area.name,
         "indicators": {
-            "population": indicators.population if indicators else None,
-            "mobility_score": indicators.mobility_score if indicators else None,
-            "environment_score": indicators.environment_score if indicators else None,
-            "infrastructure_score": indicators.infrastructure_score if indicators else None,
-            "business_activity_score": indicators.business_activity_score if indicators else None,
+            "population": indicators.population
+            if indicators else None,
+            "mobility_score": indicators.mobility_score
+            if indicators else None,
+            "environment_score": indicators.environment_score
+            if indicators else None,
+            "infrastructure_score": indicators.infrastructure_score
+            if indicators else None,
+            "business_activity_score":
+                indicators.business_activity_score
+            if indicators else None,
         },
     }
 
 
-# -------------------------------
+# -----------------------------------------------
 # Urban Health Score
-# -------------------------------
+# -----------------------------------------------
+
+
 @app.get("/urban-health-score/{area_id}")
 def get_health_score(area_id: int, db: Session = Depends(get_db)):
-    indicators = db.query(models.Indicator).filter(models.Indicator.area_id == area_id).first()
+    indicators = db.query(models.Indicator).filter(
+        models.Indicator.area_id == area_id
+    ).first()
     if not indicators:
         return {"message": "Select an area to calculate health score"}
 
@@ -77,13 +125,19 @@ def get_health_score(area_id: int, db: Session = Depends(get_db)):
 
     score = (
         pop_factor * weights["population"]
-        + (indicators.mobility_score or 0) * weights["mobility_score"]
-        + (indicators.environment_score or 0) * weights["environment_score"]
-        + (indicators.infrastructure_score or 0) * weights["infrastructure_score"]
-        + (indicators.business_activity_score or 0) * weights["business_activity_score"]
+        + (indicators.mobility_score or 0)
+        * weights["mobility_score"]
+        + (indicators.environment_score or 0)
+        * weights["environment_score"]
+        + (indicators.infrastructure_score or 0)
+        * weights["infrastructure_score"]
+        + (indicators.business_activity_score or 0)
+        * weights["business_activity_score"]
     )
 
-    existing = db.query(models.Score).filter(models.Score.area_id == area_id).first()
+    existing = db.query(models.Score).filter(
+        models.Score.area_id == area_id
+    ).first()
     if existing:
         existing.health_score = score
     else:
@@ -93,69 +147,110 @@ def get_health_score(area_id: int, db: Session = Depends(get_db)):
     return {"area_id": area_id, "urban_health_score": round(score, 2)}
 
 
-# -------------------------------
+# -----------------------------------------------
 # Compare Areas
-# -------------------------------
+# -----------------------------------------------
+
+
 @app.get("/compare-areas")
-def compare_areas(area1: int, area2: int, db: Session = Depends(get_db)):
-    a1 = db.query(models.Area).filter(models.Area.id == area1).first()
-    a2 = db.query(models.Area).filter(models.Area.id == area2).first()
+def compare_areas(area1: int, area2: int,
+                  db: Session = Depends(get_db)):
+    a1 = db.query(models.Area).filter(
+        models.Area.id == area1
+    ).first()
+    a2 = db.query(models.Area).filter(
+        models.Area.id == area2
+    ).first()
     if not a1 or not a2:
         return {"message": "Choose two areas to compare"}
 
-    ind1 = db.query(models.Indicator).filter(models.Indicator.area_id == area1).first()
-    ind2 = db.query(models.Indicator).filter(models.Indicator.area_id == area2).first()
+    ind1 = db.query(models.Indicator).filter(
+        models.Indicator.area_id == area1
+    ).first()
+    ind2 = db.query(models.Indicator).filter(
+        models.Indicator.area_id == area2
+    ).first()
 
-    score1 = db.query(models.Score).filter(models.Score.area_id == area1).first()
-    score2 = db.query(models.Score).filter(models.Score.area_id == area2).first()
+    score1 = db.query(models.Score).filter(
+        models.Score.area_id == area1
+    ).first()
+    score2 = db.query(models.Score).filter(
+        models.Score.area_id == area2
+    ).first()
 
     return {
         "area1": {
             "id": a1.id,
             "name": a1.name,
             "indicators": {
-                "population": ind1.population if ind1 else None,
-                "mobility_score": ind1.mobility_score if ind1 else None,
-                "environment_score": ind1.environment_score if ind1 else None,
-                "infrastructure_score": ind1.infrastructure_score if ind1 else None,
-                "business_activity_score": ind1.business_activity_score if ind1 else None,
+                "population": ind1.population
+                if ind1 else None,
+                "mobility_score": ind1.mobility_score
+                if ind1 else None,
+                "environment_score": ind1.environment_score
+                if ind1 else None,
+                "infrastructure_score":
+                    ind1.infrastructure_score
+                if ind1 else None,
+                "business_activity_score":
+                    ind1.business_activity_score
+                if ind1 else None,
             },
             "scores": {
-                "health_score": score1.health_score if score1 else None,
-                "growth_index": score1.growth_index if score1 else None,
-                "infra_index": score1.infra_index if score1 else None,
-                "opportunity_score": score1.opportunity_score if score1 else None,
+                "health_score": score1.health_score
+                if score1 else None,
+                "growth_index": score1.growth_index
+                if score1 else None,
+                "infra_index": score1.infra_index
+                if score1 else None,
+                "opportunity_score": score1.opportunity_score
+                if score1 else None,
             },
         },
         "area2": {
             "id": a2.id,
             "name": a2.name,
             "indicators": {
-                "population": ind2.population if ind2 else None,
-                "mobility_score": ind2.mobility_score if ind2 else None,
-                "environment_score": ind2.environment_score if ind2 else None,
-                "infrastructure_score": ind2.infrastructure_score if ind2 else None,
-                "business_activity_score": ind2.business_activity_score if ind2 else None,
+                "population": ind2.population
+                if ind2 else None,
+                "mobility_score": ind2.mobility_score
+                if ind2 else None,
+                "environment_score": ind2.environment_score
+                if ind2 else None,
+                "infrastructure_score":
+                    ind2.infrastructure_score
+                if ind2 else None,
+                "business_activity_score":
+                    ind2.business_activity_score
+                if ind2 else None,
             },
             "scores": {
-                "health_score": score2.health_score if score2 else None,
-                "growth_index": score2.growth_index if score2 else None,
-                "infra_index": score2.infra_index if score2 else None,
-                "opportunity_score": score2.opportunity_score if score2 else None,
+                "health_score": score2.health_score
+                if score2 else None,
+                "growth_index": score2.growth_index
+                if score2 else None,
+                "infra_index": score2.infra_index
+                if score2 else None,
+                "opportunity_score": score2.opportunity_score
+                if score2 else None,
             },
         },
     }
 
 
-# -------------------------------
+# -----------------------------------------------
 # Opportunity Engine
-# -------------------------------
+# -----------------------------------------------
+
+
 class OpportunityRequest(BaseModel):
     business_type: str
     industry: str
 
+
 @app.post("/opportunity-engine")
-def opportunity_engine(request: OpportunityRequest, db: Session = Depends(get_db)):
+def opportunity_engine(request: OpportunityRequest,
+                       db: Session = Depends(get_db)):
     opportunities = (
         db.query(models.Opportunity)
         .filter(models.Opportunity.industry == request.industry)
@@ -170,7 +265,13 @@ def opportunity_engine(request: OpportunityRequest, db: Session = Depends(get_db
         }
 
     ranked = sorted(
-        [{"area": o.area, "opportunity_score": round(o.opportunity_score, 2)} for o in opportunities],
+        [
+            {
+                "area": o.area,
+                "opportunity_score": round(o.opportunity_score, 2)
+            }
+            for o in opportunities
+        ],
         key=lambda x: x["opportunity_score"],
         reverse=True,
     )
@@ -182,20 +283,27 @@ def opportunity_engine(request: OpportunityRequest, db: Session = Depends(get_db
     }
 
 
-# -------------------------------
-# NEW: Areas list for dropdown
-# -------------------------------
+# -----------------------------------------------
+# Areas list (all areas, kept for compatibility)
+# -----------------------------------------------
+
+
 @app.get("/areas")
 def list_areas(db: Session = Depends(get_db)):
     """Return all areas with id and name for dropdowns."""
-    return [{"id": a.id, "name": a.name} for a in db.query(models.Area).all()]
+    return [{"id": a.id, "name": a.name}
+            for a in db.query(models.Area).all()]
 
 
-# -------------------------------
-# NEW: Industries list for dropdown
-# -------------------------------
+# -----------------------------------------------
+# Industries list for dropdown
+# -----------------------------------------------
+
+
 @app.get("/industries")
 def list_industries(db: Session = Depends(get_db)):
-    """Return distinct industries from opportunities for dropdowns."""
-    industries = db.query(models.Opportunity.industry).distinct().all()
+    """Return distinct industries from opportunities."""
+    industries = db.query(
+        models.Opportunity.industry
+    ).distinct().all()
     return [i[0] for i in industries]
