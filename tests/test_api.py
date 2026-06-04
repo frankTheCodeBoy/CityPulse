@@ -5,8 +5,8 @@ import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from backend.main import app
 
-
 client = TestClient(app)
+
 
 def test_area_profile():
     response = client.get("/area-profile/1")
@@ -15,12 +15,14 @@ def test_area_profile():
     assert "id" in data
     assert "name" in data
 
+
 def test_urban_health_score_no_indicators():
-    # Should return error if indicators not seeded
-    response = client.get("/urban-health-score/999")  # non-existent area
+    response = client.get("/urban-health-score/999")
     assert response.status_code == 200
     data = response.json()
-    assert "error" in data
+    assert "message" in data
+    assert data["message"].startswith("Select an area")
+
 
 def test_compare_areas():
     response = client.get("/compare-areas?area1=1&area2=2")
