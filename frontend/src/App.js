@@ -96,6 +96,7 @@ function App() {
       .catch(() => setError("Failed to load cities"));
   }, []);
 
+  // Reset all dashboard data when city changes
   useEffect(() => {
     if (selectedCity) {
       fetch(`${API_URL}/areas/${selectedCity}`)
@@ -105,9 +106,14 @@ function App() {
           setAreas([]);
           setError("Failed to load areas");
         });
+      // Clear all previous selections and results for fresh start
       setProfileArea(null);
+      setAreaProfile(null);
       setArea1(null);
       setArea2(null);
+      setCompareData(null);
+      setIndustry("");
+      setOpportunity(null);
     }
   }, [selectedCity]);
 
