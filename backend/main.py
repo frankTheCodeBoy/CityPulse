@@ -326,3 +326,14 @@ def list_industries(db: Session = Depends(get_db)):
         models.Opportunity.industry
     ).distinct().all()
     return [i[0] for i in industries]
+
+
+# -----------------------------------------------
+# Health Check (for Render deployment)
+# -----------------------------------------------
+
+
+@app.get("/healthz")
+def health_check():
+    """Health check endpoint for Render monitoring."""
+    return {"status": "ok"}
