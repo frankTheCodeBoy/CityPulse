@@ -19,7 +19,7 @@ DEVELOPMENT_ORIGINS = [
 ]
 
 PRODUCTION_ORIGINS = [
-    "https://citypulse-frontend-cyan.vercel.app/",
+    "https://city-pulse-beta.vercel.app/",
     "https://citypulse.pages.dev",
 ]
 
