@@ -12,6 +12,9 @@ import {
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
+// API URL - uses environment variable or defaults to localhost
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+
 function App() {
   const [mode, setMode] = useState("light");
   const [cities, setCities] = useState([]);
@@ -87,7 +90,7 @@ function App() {
     });
 
   useEffect(() => {
-    fetch("http://localhost:8000/cities")
+    fetch(`${API_URL}/cities`)
       .then((res) => res.json())
       .then(setCities)
       .catch(() => setError("Failed to load cities"));
@@ -95,7 +98,7 @@ function App() {
 
   useEffect(() => {
     if (selectedCity) {
-      fetch(`http://localhost:8000/areas/${selectedCity}`)
+      fetch(`${API_URL}/areas/${selectedCity}`)
         .then((res) => res.json())
         .then(setAreas)
         .catch(() => {
@@ -109,7 +112,7 @@ function App() {
   }, [selectedCity]);
 
   useEffect(() => {
-    fetch("http://localhost:8000/industries")
+    fetch(`${API_URL}/industries`)
       .then((res) => res.json())
       .then(setIndustries)
       .catch(() => setError("Failed to load industries"));
@@ -118,7 +121,7 @@ function App() {
   useEffect(() => {
     if (profileArea) {
       setLoadingProfile(true);
-      fetch(`http://localhost:8000/area-profile/${profileArea}`)
+      fetch(`${API_URL}/area-profile/${profileArea}`)
         .then((res) => res.json())
         .then(setAreaProfile)
         .catch(() => setAreaProfile(null))
@@ -130,7 +133,7 @@ function App() {
     if (area1 && area2) {
       setLoadingCompare(true);
       fetch(
-        `http://localhost:8000/compare-areas?area1=${area1}&area2=${area2}`
+        `${API_URL}/compare-areas?area1=${area1}&area2=${area2}`
       )
         .then((res) => res.json())
         .then(setCompareData)
@@ -141,7 +144,7 @@ function App() {
 
   const runEngine = () => {
     setLoadingOpportunity(true);
-    fetch("http://localhost:8000/opportunity-engine", {
+    fetch(`${API_URL}/opportunity-engine`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ business_type: "Demo", industry }),
