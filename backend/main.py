@@ -265,6 +265,7 @@ def compare_areas(area1: int, area2: int,
 class OpportunityRequest(BaseModel):
     business_type: str
     industry: str
+    city_id: int
 
 
 @app.post("/opportunity-engine")
@@ -272,7 +273,10 @@ def opportunity_engine(request: OpportunityRequest,
                        db: Session = Depends(get_db)):
     opportunities = (
         db.query(models.Opportunity)
+        .join(models.Area,
+              models.Opportunity.area_id == models.Area.id)
         .filter(models.Opportunity.industry == request.industry)
+        .filter(models.Area.city_id == request.city_id)
         .all()
     )
     if not opportunities:
@@ -286,7 +290,7 @@ def opportunity_engine(request: OpportunityRequest,
     ranked = sorted(
         [
             {
-                "area": o.area,
+                "area": o.area.name,
                 "opportunity_score": round(o.opportunity_score, 2)
             }
             for o in opportunities

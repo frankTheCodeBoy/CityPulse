@@ -153,7 +153,7 @@ function App() {
     fetch(`${API_URL}/opportunity-engine`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ business_type: "Demo", industry }),
+      body: JSON.stringify({ business_type: "Demo", industry, city_id: parseInt(selectedCity) }),
     })
       .then((res) => res.json())
       .then(setOpportunity)

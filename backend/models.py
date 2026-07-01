@@ -55,6 +55,9 @@ class Score(Base):
 class Opportunity(Base):
     __tablename__ = "opportunities"
     id = Column(Integer, primary_key=True, index=True)
-    area = Column(String)
+    area_id = Column(Integer, ForeignKey("areas.id"))
     industry = Column(String)
     opportunity_score = Column(Float)
+
+    # Relationship to Area (gives us area.name and area.city_id)
+    area = relationship("Area")

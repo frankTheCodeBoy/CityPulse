@@ -58,7 +58,7 @@ for city_name, area_names in areas_by_city.items():
         area_objs[area_name] = new_area
 
 # -----------------------------------------------
-# Seed Indicators for Nairobi (existing data)
+# Seed Indicators
 # -----------------------------------------------
 nairobi_indicators = {
     "CBD": {
@@ -133,9 +133,6 @@ nairobi_indicators = {
     },
 }
 
-# -----------------------------------------------
-# Seed Indicators for Mombasa
-# -----------------------------------------------
 mombasa_indicators = {
     "Nyali": {
         "population": 180000, "mobility_score": 0.65,
@@ -169,9 +166,6 @@ mombasa_indicators = {
     },
 }
 
-# -----------------------------------------------
-# Seed Indicators for Kisumu
-# -----------------------------------------------
 kisumu_indicators = {
     "Kondele": {
         "population": 150000, "mobility_score": 0.55,
@@ -340,24 +334,19 @@ for name, data in all_scores.items():
     db.add(Score(area_id=area_objs[name].id, **data))
 
 # -----------------------------------------------
-# Seed Opportunities
+# Seed Opportunities (using area_id FK, not string)
 # -----------------------------------------------
-all_areas = list(area_objs.keys())
 industries = ["Food", "Tech", "Retail"]
-sample_opportunities = []
 
-for area_name in all_areas:
+for area_name, area_obj in area_objs.items():
     for industry in industries:
-        sample_opportunities.append({
-            "area": area_name,
-            "industry": industry,
-            "opportunity_score": round(
+        db.add(Opportunity(
+            area_id=area_obj.id,
+            industry=industry,
+            opportunity_score=round(
                 0.6 + hash(area_name + industry) % 30 / 100, 2
             )
-        })
-
-for opp in sample_opportunities:
-    db.add(Opportunity(**opp))
+        ))
 
 db.commit()
 db.close()
