@@ -2,24 +2,24 @@ import os
 from sqlalchemy import create_engine, pool
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
+
+# Load environment variables from .env if present
+load_dotenv()
 
 # Use environment variable for database URL
 # Falls back to SQLite for local development
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "sqlite:///./citypulse.db"
-)
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./citypulse.db")
 
-# Check if using PostgreSQL (from Neon or other provider)
 if DATABASE_URL.startswith("postgresql"):
-    # PostgreSQL connection with connection pooling
-    # Conservative settings for Neon free tier
+    # Neon/Postgres connection
+    # Use NullPool (no pooling) to avoid unsupported startup parameters
     engine = create_engine(
         DATABASE_URL,
-        poolclass=pool.NullPool,  # Neon recommends NullPool
+        poolclass=pool.NullPool,
         connect_args={
             "connect_timeout": 10,
-            "options": "-c statement_timeout=30000",
+            "sslmode": "require"   # enforce SSL for Neon
         },
     )
 else:
@@ -34,4 +34,5 @@ SessionLocal = sessionmaker(
     autoflush=False,
     bind=engine
 )
+
 Base = declarative_base()
