@@ -7,13 +7,30 @@ import {
 import { Brightness4, Brightness7 } from "@mui/icons-material";
 import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
-  Tooltip, BarChart, Bar, XAxis, YAxis
+  Tooltip, BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Legend
 } from "recharts";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
 // API URL - uses environment variable or defaults to localhost
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
+
+// Angled tick for BarChart X-axis labels
+const AngledTick = ({ x, y, payload, fill }) => (
+  <g transform={`translate(${x},${y})`}>
+    <text
+      x={0}
+      y={0}
+      dy={10}
+      textAnchor="end"
+      fill={fill}
+      fontSize={12}
+      transform="rotate(-35)"
+    >
+      {payload.value}
+    </text>
+  </g>
+);
 
 function App() {
   const [mode, setMode] = useState("light");
@@ -153,7 +170,11 @@ function App() {
     fetch(`${API_URL}/opportunity-engine`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ business_type: "Demo", industry, city_id: parseInt(selectedCity) }),
+      body: JSON.stringify({
+        business_type: "Demo",
+        industry,
+        city_id: parseInt(selectedCity),
+      }),
     })
       .then((res) => res.json())
       .then(setOpportunity)
@@ -172,6 +193,8 @@ function App() {
     pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
     pdf.save("CityPulse-Dashboard.pdf");
   };
+
+  const tickFill = mode === "dark" ? "#ffffff" : "#333333";
 
   return (
     <ThemeProvider theme={getTheme(mode)}>
@@ -241,9 +264,10 @@ function App() {
                   </Typography>
                   <Typography variant="body1" color="textSecondary"
                               sx={{ mb: 2 }}>
-                    Select a city below to start your urban analysis. Explore
-                    metropolitan indicators, compare neighborhoods, and discover
-                    business opportunities across Kenya's major cities.
+                    Select a city below to start your urban analysis.
+                    Explore metropolitan indicators, compare
+                    neighborhoods, and discover business opportunities
+                    across Kenya's major cities.
                   </Typography>
                 </CardContent>
               </Card>
@@ -254,9 +278,8 @@ function App() {
                 <Typography variant="h6" sx={{ mb: 2 }}>
                   📍 Select City
                 </Typography>
-                <Typography variant="body2" color="textSecondary" sx={{
-                  mb: 2,
-                }}>
+                <Typography variant="body2" color="textSecondary"
+                            sx={{ mb: 2 }}>
                   Choose a city to view areas and analyze urban metrics.
                 </Typography>
                 <Select
@@ -282,11 +305,12 @@ function App() {
                     <Typography variant="body2" color="textSecondary"
                                 sx={{ mb: 2 }}>
                       Select an area within{" "}
-                      {cities.find((c) => c.id === parseInt(selectedCity))
-                        ?.name || "this city"}{" "}
+                      {cities.find(
+                        (c) => c.id === parseInt(selectedCity)
+                      )?.name || "this city"}{" "}
                       to view detailed indicators including population,
-                      mobility, environment, infrastructure, and business
-                      activity metrics.
+                      mobility, environment, infrastructure, and
+                      business activity metrics.
                     </Typography>
                     <Select
                       value={profileArea || ""}
@@ -296,17 +320,21 @@ function App() {
                     >
                       <MenuItem value="">-- Select an Area --</MenuItem>
                       {areas.map((a) => (
-                        <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>
+                        <MenuItem key={a.id} value={a.id}>
+                          {a.name}
+                        </MenuItem>
                       ))}
                     </Select>
 
                     {areaProfile ? (
                       <>
                         <Divider sx={{ my: 2 }} />
-                        <Box sx={{ display: "grid",
-                                   gridTemplateColumns: "repeat(auto-fit,"
-                                     + " minmax(200px, 1fr))",
-                                   gap: 2 }}>
+                        <Box sx={{
+                          display: "grid",
+                          gridTemplateColumns:
+                            "repeat(auto-fit, minmax(200px, 1fr))",
+                          gap: 2,
+                        }}>
                           <Box>
                             <Typography variant="caption"
                                         color="textSecondary">
@@ -335,9 +363,8 @@ function App() {
                             </Typography>
                             <Typography variant="h6">
                               {areaProfile.indicators.mobility_score
-                                ? (
-                                  areaProfile.indicators
-                                    .mobility_score * 100
+                                ? (areaProfile.indicators
+                                  .mobility_score * 100
                                 ).toFixed(0) + "%"
                                 : "N/A"}
                             </Typography>
@@ -348,11 +375,9 @@ function App() {
                               Environment Score
                             </Typography>
                             <Typography variant="h6">
-                              {areaProfile.indicators
-                                .environment_score
-                                ? (
-                                  areaProfile.indicators
-                                    .environment_score * 100
+                              {areaProfile.indicators.environment_score
+                                ? (areaProfile.indicators
+                                  .environment_score * 100
                                 ).toFixed(0) + "%"
                                 : "N/A"}
                             </Typography>
@@ -365,9 +390,8 @@ function App() {
                             <Typography variant="h6">
                               {areaProfile.indicators
                                 .infrastructure_score
-                                ? (
-                                  areaProfile.indicators
-                                    .infrastructure_score * 100
+                                ? (areaProfile.indicators
+                                  .infrastructure_score * 100
                                 ).toFixed(0) + "%"
                                 : "N/A"}
                             </Typography>
@@ -380,9 +404,8 @@ function App() {
                             <Typography variant="h6">
                               {areaProfile.indicators
                                 .business_activity_score
-                                ? (
-                                  areaProfile.indicators
-                                    .business_activity_score * 100
+                                ? (areaProfile.indicators
+                                  .business_activity_score * 100
                                 ).toFixed(0) + "%"
                                 : "N/A"}
                             </Typography>
@@ -390,8 +413,11 @@ function App() {
                         </Box>
                       </>
                     ) : loadingProfile ? (
-                      <Box sx={{ display: "flex", justifyContent: "center",
-                                 py: 3 }}>
+                      <Box sx={{
+                        display: "flex",
+                        justifyContent: "center",
+                        py: 3,
+                      }}>
                         <CircularProgress />
                       </Box>
                     ) : (
@@ -409,8 +435,8 @@ function App() {
                     </Typography>
                     <Typography variant="body2" color="textSecondary"
                                 sx={{ mb: 2 }}>
-                      Select two areas to compare their urban indicators side by
-                      side using an interactive radar chart.
+                      Select two areas to compare their urban indicators
+                      side by side using an interactive radar chart.
                     </Typography>
                     <Box sx={{ display: "flex", gap: 2, mb: 2,
                                flexWrap: "wrap" }}>
@@ -422,7 +448,8 @@ function App() {
                       >
                         <MenuItem value="">-- Area 1 --</MenuItem>
                         {areas.map((a) => (
-                          <MenuItem key={a.id} value={a.id}>{a.name}
+                          <MenuItem key={a.id} value={a.id}>
+                            {a.name}
                           </MenuItem>
                         ))}
                       </Select>
@@ -434,7 +461,8 @@ function App() {
                       >
                         <MenuItem value="">-- Area 2 --</MenuItem>
                         {areas.map((a) => (
-                          <MenuItem key={a.id} value={a.id}>{a.name}
+                          <MenuItem key={a.id} value={a.id}>
+                            {a.name}
                           </MenuItem>
                         ))}
                       </Select>
@@ -492,30 +520,30 @@ function App() {
                             name={compareData.area1.name}
                             dataKey="A"
                             stroke={mode === "dark"
-                              ? "#00d4ff"
-                              : "#00796b"}
+                              ? "#00d4ff" : "#00796b"}
                             fill={mode === "dark"
-                              ? "#00d4ff"
-                              : "#00796b"}
+                              ? "#00d4ff" : "#00796b"}
                             fillOpacity={0.6}
                           />
                           <Radar
                             name={compareData.area2.name}
                             dataKey="B"
                             stroke={mode === "dark"
-                              ? "#ff6b9d"
-                              : "#ff8f00"}
+                              ? "#ff6b9d" : "#ff8f00"}
                             fill={mode === "dark"
-                              ? "#ff6b9d"
-                              : "#ff8f00"}
+                              ? "#ff6b9d" : "#ff8f00"}
                             fillOpacity={0.6}
                           />
                           <Tooltip />
+                          <Legend />
                         </RadarChart>
                       </Box>
                     ) : loadingCompare ? (
-                      <Box sx={{ display: "flex", justifyContent: "center",
-                                 py: 3 }}>
+                      <Box sx={{
+                        display: "flex",
+                        justifyContent: "center",
+                        py: 3,
+                      }}>
                         <CircularProgress />
                       </Box>
                     ) : (
@@ -533,9 +561,9 @@ function App() {
                     </Typography>
                     <Typography variant="body2" color="textSecondary"
                                 sx={{ mb: 2 }}>
-                      Analyze business opportunities by industry. See which
-                      areas within your selected city have the highest
-                      potential for specific sectors.
+                      Analyze business opportunities by industry. See
+                      which areas within your selected city have the
+                      highest potential for specific sectors.
                     </Typography>
                     <Box sx={{ display: "flex", gap: 2, mb: 2,
                                flexWrap: "wrap",
@@ -560,41 +588,60 @@ function App() {
                     </Box>
 
                     {opportunity ? (
-                      <Box sx={{ overflowX: "auto" }}>
+                      <ResponsiveContainer width="100%" height={380}>
                         <BarChart
-                          width={500}
-                          height={300}
                           data={opportunity.ranked_opportunities}
+                          margin={{
+                            top: 10,
+                            right: 20,
+                            left: 0,
+                            bottom: 80,
+                          }}
                         >
                           <XAxis
                             dataKey="area"
-                            stroke={mode === "dark"
-                              ? "#ffffff"
-                              : "#000000"}
+                            tick={
+                              <AngledTick fill={tickFill} />
+                            }
+                            interval={0}
+                            stroke={tickFill}
                           />
                           <YAxis
-                            stroke={mode === "dark"
-                              ? "#ffffff"
-                              : "#000000"}
+                            stroke={tickFill}
+                            tick={{ fill: tickFill, fontSize: 12 }}
+                            domain={[0, 1]}
                           />
-                          <Tooltip />
+                          <Tooltip
+                            formatter={(value) =>
+                              value.toFixed(2)
+                            }
+                          />
                           <Bar
                             dataKey="opportunity_score"
                             fill={mode === "dark"
-                              ? "#00d4ff"
-                              : "#00796b"}
+                              ? "#00d4ff" : "#00796b"}
+                            radius={[4, 4, 0, 0]}
+                            label={{
+                              position: "top",
+                              fill: tickFill,
+                              fontSize: 11,
+                              formatter: (v) => v.toFixed(2),
+                            }}
                           />
                         </BarChart>
-                      </Box>
+                      </ResponsiveContainer>
                     ) : loadingOpportunity ? (
-                      <Box sx={{ display: "flex", justifyContent: "center",
-                                 py: 3 }}>
+                      <Box sx={{
+                        display: "flex",
+                        justifyContent: "center",
+                        py: 3,
+                      }}>
                         <CircularProgress />
                       </Box>
                     ) : (
                       <Typography color="textSecondary">
-                        Select an industry and click Analyze to see opportunity
-                        rankings.
+                        Select an industry and click Analyze to see
+                        opportunity rankings.
                       </Typography>
                     )}
                   </CardContent>
