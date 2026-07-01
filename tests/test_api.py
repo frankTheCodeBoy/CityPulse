@@ -1,7 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
-import sys, os
+import sys
+import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from backend.main import app
 
@@ -31,24 +32,39 @@ def test_compare_areas():
     assert "area1" in data
     assert "area2" in data
 
+
 def test_opportunity_engine_food():
-    payload = {"business_type": "Restaurant", "industry": "Food"}
+    payload = {
+        "business_type": "Restaurant",
+        "industry": "Food",
+        "city_id": 1,
+    }
     response = client.post("/opportunity-engine", json=payload)
     assert response.status_code == 200
     data = response.json()
     assert data["industry"].lower() == "food"
     assert "ranked_opportunities" in data
 
+
 def test_opportunity_engine_tech():
-    payload = {"business_type": "Startup Hub", "industry": "Tech"}
+    payload = {
+        "business_type": "Startup Hub",
+        "industry": "Tech",
+        "city_id": 1,
+    }
     response = client.post("/opportunity-engine", json=payload)
     assert response.status_code == 200
     data = response.json()
     assert data["industry"].lower() == "tech"
     assert "ranked_opportunities" in data
 
+
 def test_opportunity_engine_retail():
-    payload = {"business_type": "Clothing Store", "industry": "Retail"}
+    payload = {
+        "business_type": "Clothing Store",
+        "industry": "Retail",
+        "city_id": 1,
+    }
     response = client.post("/opportunity-engine", json=payload)
     assert response.status_code == 200
     data = response.json()
