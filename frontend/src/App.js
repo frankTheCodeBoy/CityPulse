@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
-  Container, Card, CardContent, Typography, Button, Select, MenuItem,
-  ThemeProvider, createTheme, CssBaseline, IconButton, CircularProgress,
-  Snackbar, Alert, Box, Divider
+  Container, Card, CardContent, Typography, Button, Select,
+  MenuItem, ThemeProvider, createTheme, CssBaseline, IconButton,
+  CircularProgress, Snackbar, Alert, Box, Divider, useMediaQuery,
+  useTheme
 } from "@mui/material";
 import { Brightness4, Brightness7 } from "@mui/icons-material";
 import {
@@ -12,7 +13,6 @@ import {
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
-// API URL - uses environment variable or defaults to localhost
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
 // Angled tick for BarChart X-axis labels
@@ -51,6 +51,10 @@ function App() {
   const [error, setError] = useState(null);
   const dashboardRef = useRef();
 
+  const theme = useTheme();
+  // true on phones/small tablets
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
   const getTheme = (mode) =>
     createTheme({
       palette: {
@@ -68,13 +72,8 @@ function App() {
       },
       typography: {
         fontFamily: '"Inter", "Roboto", sans-serif',
-        h4: {
-          fontWeight: 700,
-          letterSpacing: "-0.5px",
-        },
-        h6: {
-          fontWeight: 600,
-        },
+        h4: { fontWeight: 700, letterSpacing: "-0.5px" },
+        h6: { fontWeight: 600 },
       },
       components: {
         MuiCard: {
@@ -82,13 +81,13 @@ function App() {
             root: {
               borderRadius: "12px",
               boxShadow: mode === "dark"
-                ? "0 4px 20px rgba(0, 0, 0, 0.4)"
-                : "0 2px 8px rgba(0, 0, 0, 0.1)",
+                ? "0 4px 20px rgba(0,0,0,0.4)"
+                : "0 2px 8px rgba(0,0,0,0.1)",
               transition: "box-shadow 0.3s ease",
               "&:hover": {
                 boxShadow: mode === "dark"
-                  ? "0 8px 30px rgba(0, 212, 255, 0.15)"
-                  : "0 4px 16px rgba(0, 121, 107, 0.12)",
+                  ? "0 8px 30px rgba(0,212,255,0.15)"
+                  : "0 4px 16px rgba(0,121,107,0.12)",
               },
             },
           },
@@ -113,7 +112,6 @@ function App() {
       .catch(() => setError("Failed to load cities"));
   }, []);
 
-  // Reset all dashboard data when city changes
   useEffect(() => {
     if (selectedCity) {
       fetch(`${API_URL}/areas/${selectedCity}`)
@@ -123,7 +121,6 @@ function App() {
           setAreas([]);
           setError("Failed to load areas");
         });
-      // Clear all previous selections and results for fresh start
       setProfileArea(null);
       setAreaProfile(null);
       setArea1(null);
@@ -155,9 +152,7 @@ function App() {
   useEffect(() => {
     if (area1 && area2) {
       setLoadingCompare(true);
-      fetch(
-        `${API_URL}/compare-areas?area1=${area1}&area2=${area2}`
-      )
+      fetch(`${API_URL}/compare-areas?area1=${area1}&area2=${area2}`)
         .then((res) => res.json())
         .then(setCompareData)
         .catch(() => setCompareData(null))
@@ -182,6 +177,7 @@ function App() {
       .finally(() => setLoadingOpportunity(false));
   };
 
+  // PDF export — desktop only (unreliable on mobile)
   const handlePrint = async () => {
     const element = dashboardRef.current;
     const canvas = await html2canvas(element);
@@ -199,11 +195,22 @@ function App() {
   return (
     <ThemeProvider theme={getTheme(mode)}>
       <CssBaseline />
-      <Container maxWidth="lg" sx={{ py: 4, minHeight: "100vh",
-                                     display: "flex",
-                                     flexDirection: "column" }}>
-        <Box sx={{ display: "flex", justifyContent: "space-between",
-                   alignItems: "center", mb: 4 }}>
+      <Container
+        maxWidth="lg"
+        sx={{
+          py: 4,
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {/* Header */}
+        <Box sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 4,
+        }}>
           <Box>
             <Typography variant="h4" gutterBottom sx={{
               background: mode === "dark"
@@ -224,12 +231,12 @@ function App() {
             color="primary"
             sx={{
               backgroundColor: mode === "dark"
-                ? "rgba(0, 212, 255, 0.1)"
-                : "rgba(0, 121, 107, 0.1)",
+                ? "rgba(0,212,255,0.1)"
+                : "rgba(0,121,107,0.1)",
               "&:hover": {
                 backgroundColor: mode === "dark"
-                  ? "rgba(0, 212, 255, 0.2)"
-                  : "rgba(0, 121, 107, 0.2)",
+                  ? "rgba(0,212,255,0.2)"
+                  : "rgba(0,121,107,0.2)",
               },
             }}
           >
@@ -237,14 +244,17 @@ function App() {
           </IconButton>
         </Box>
 
-        <Button
-          variant="contained"
-          color="secondary"
-          onClick={handlePrint}
-          sx={{ mb: 3 }}
-        >
-          Export to PDF
-        </Button>
+        {/* Export to PDF — desktop only */}
+        {!isMobile && (
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={handlePrint}
+            sx={{ mb: 3, alignSelf: "flex-start" }}
+          >
+            Export to PDF
+          </Button>
+        )}
 
         {error && (
           <Alert severity="error" sx={{ mb: 3 }}>
@@ -254,12 +264,13 @@ function App() {
 
         <Box sx={{ flex: 1 }}>
           <div ref={dashboardRef}>
+
+            {/* Welcome card */}
             {!selectedCity && (
               <Card sx={{ mb: 4, textAlign: "center", py: 3 }}>
                 <CardContent>
-                  <Typography variant="h5" gutterBottom sx={{
-                    fontWeight: 600,
-                  }}>
+                  <Typography variant="h5" gutterBottom
+                              sx={{ fontWeight: 600 }}>
                     Welcome to CityPulse
                   </Typography>
                   <Typography variant="body1" color="textSecondary"
@@ -273,6 +284,7 @@ function App() {
               </Card>
             )}
 
+            {/* City selector */}
             <Card sx={{ mb: 4 }}>
               <CardContent>
                 <Typography variant="h6" sx={{ mb: 2 }}>
@@ -289,7 +301,9 @@ function App() {
                 >
                   <MenuItem value="">-- Select a City --</MenuItem>
                   {cities.map((c) => (
-                    <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
+                    <MenuItem key={c.id} value={c.id}>
+                      {c.name}
+                    </MenuItem>
                   ))}
                 </Select>
               </CardContent>
@@ -297,6 +311,7 @@ function App() {
 
             {selectedCity && (
               <>
+                {/* City Profile */}
                 <Card sx={{ mb: 4 }}>
                   <CardContent>
                     <Typography variant="h6" sx={{ mb: 2 }}>
@@ -308,9 +323,7 @@ function App() {
                       {cities.find(
                         (c) => c.id === parseInt(selectedCity)
                       )?.name || "this city"}{" "}
-                      to view detailed indicators including population,
-                      mobility, environment, infrastructure, and
-                      business activity metrics.
+                      to view detailed indicators.
                     </Typography>
                     <Select
                       value={profileArea || ""}
@@ -332,84 +345,47 @@ function App() {
                         <Box sx={{
                           display: "grid",
                           gridTemplateColumns:
-                            "repeat(auto-fit, minmax(200px, 1fr))",
+                            "repeat(auto-fit, minmax(160px, 1fr))",
                           gap: 2,
                         }}>
-                          <Box>
-                            <Typography variant="caption"
-                                        color="textSecondary">
-                              Area
-                            </Typography>
-                            <Typography variant="h6">
-                              {areaProfile.name}
-                            </Typography>
-                          </Box>
-                          <Box>
-                            <Typography variant="caption"
-                                        color="textSecondary">
-                              Population
-                            </Typography>
-                            <Typography variant="h6">
-                              {areaProfile.indicators.population
-                                ? areaProfile.indicators.population
-                                  .toLocaleString()
-                                : "N/A"}
-                            </Typography>
-                          </Box>
-                          <Box>
-                            <Typography variant="caption"
-                                        color="textSecondary">
-                              Mobility Score
-                            </Typography>
-                            <Typography variant="h6">
-                              {areaProfile.indicators.mobility_score
+                          {[
+                            ["Area", areaProfile.name],
+                            ["Population",
+                              areaProfile.indicators.population
+                                ?.toLocaleString() ?? "N/A"],
+                            ["Mobility Score",
+                              areaProfile.indicators.mobility_score
                                 ? (areaProfile.indicators
                                   .mobility_score * 100
-                                ).toFixed(0) + "%"
-                                : "N/A"}
-                            </Typography>
-                          </Box>
-                          <Box>
-                            <Typography variant="caption"
-                                        color="textSecondary">
-                              Environment Score
-                            </Typography>
-                            <Typography variant="h6">
-                              {areaProfile.indicators.environment_score
+                                ).toFixed(0) + "%" : "N/A"],
+                            ["Environment Score",
+                              areaProfile.indicators.environment_score
                                 ? (areaProfile.indicators
                                   .environment_score * 100
-                                ).toFixed(0) + "%"
-                                : "N/A"}
-                            </Typography>
-                          </Box>
-                          <Box>
-                            <Typography variant="caption"
-                                        color="textSecondary">
-                              Infrastructure Score
-                            </Typography>
-                            <Typography variant="h6">
-                              {areaProfile.indicators
+                                ).toFixed(0) + "%" : "N/A"],
+                            ["Infrastructure Score",
+                              areaProfile.indicators
                                 .infrastructure_score
                                 ? (areaProfile.indicators
                                   .infrastructure_score * 100
-                                ).toFixed(0) + "%"
-                                : "N/A"}
-                            </Typography>
-                          </Box>
-                          <Box>
-                            <Typography variant="caption"
-                                        color="textSecondary">
-                              Business Activity Score
-                            </Typography>
-                            <Typography variant="h6">
-                              {areaProfile.indicators
+                                ).toFixed(0) + "%" : "N/A"],
+                            ["Business Activity Score",
+                              areaProfile.indicators
                                 .business_activity_score
                                 ? (areaProfile.indicators
                                   .business_activity_score * 100
-                                ).toFixed(0) + "%"
-                                : "N/A"}
-                            </Typography>
-                          </Box>
+                                ).toFixed(0) + "%" : "N/A"],
+                          ].map(([label, value]) => (
+                            <Box key={label}>
+                              <Typography variant="caption"
+                                          color="textSecondary">
+                                {label}
+                              </Typography>
+                              <Typography variant="h6">
+                                {value}
+                              </Typography>
+                            </Box>
+                          ))}
                         </Box>
                       </>
                     ) : loadingProfile ? (
@@ -428,6 +404,7 @@ function App() {
                   </CardContent>
                 </Card>
 
+                {/* Compare Areas */}
                 <Card sx={{ mb: 4 }}>
                   <CardContent>
                     <Typography variant="h6" sx={{ mb: 2 }}>
@@ -438,8 +415,12 @@ function App() {
                       Select two areas to compare their urban indicators
                       side by side using an interactive radar chart.
                     </Typography>
-                    <Box sx={{ display: "flex", gap: 2, mb: 2,
-                               flexWrap: "wrap" }}>
+                    <Box sx={{
+                      display: "flex",
+                      gap: 2,
+                      mb: 2,
+                      flexWrap: "wrap",
+                    }}>
                       <Select
                         value={area1 || ""}
                         onChange={(e) => setArea1(e.target.value)}
@@ -554,6 +535,7 @@ function App() {
                   </CardContent>
                 </Card>
 
+                {/* Opportunity Engine */}
                 <Card sx={{ mb: 4 }}>
                   <CardContent>
                     <Typography variant="h6" sx={{ mb: 2 }}>
@@ -565,17 +547,25 @@ function App() {
                       which areas within your selected city have the
                       highest potential for specific sectors.
                     </Typography>
-                    <Box sx={{ display: "flex", gap: 2, mb: 2,
-                               flexWrap: "wrap",
-                               alignItems: "center" }}>
+                    <Box sx={{
+                      display: "flex",
+                      gap: 2,
+                      mb: 2,
+                      flexWrap: "wrap",
+                      alignItems: "center",
+                    }}>
                       <Select
                         value={industry || ""}
                         onChange={(e) => setIndustry(e.target.value)}
                         sx={{ minWidth: 200 }}
                       >
-                        <MenuItem value="">-- Select Industry --</MenuItem>
+                        <MenuItem value="">
+                          -- Select Industry --
+                        </MenuItem>
                         {industries.map((ind, idx) => (
-                          <MenuItem key={idx} value={ind}>{ind}</MenuItem>
+                          <MenuItem key={idx} value={ind}>
+                            {ind}
+                          </MenuItem>
                         ))}
                       </Select>
                       <Button
@@ -592,7 +582,7 @@ function App() {
                         <BarChart
                           data={opportunity.ranked_opportunities}
                           margin={{
-                            top: 10,
+                            top: isMobile ? 8 : 20,
                             right: 20,
                             left: 0,
                             bottom: 80,
@@ -600,9 +590,7 @@ function App() {
                         >
                           <XAxis
                             dataKey="area"
-                            tick={
-                              <AngledTick fill={tickFill} />
-                            }
+                            tick={<AngledTick fill={tickFill} />}
                             interval={0}
                             stroke={tickFill}
                           />
@@ -612,16 +600,15 @@ function App() {
                             domain={[0, 1]}
                           />
                           <Tooltip
-                            formatter={(value) =>
-                              value.toFixed(2)
-                            }
+                            formatter={(v) => v.toFixed(2)}
                           />
                           <Bar
                             dataKey="opportunity_score"
                             fill={mode === "dark"
                               ? "#00d4ff" : "#00796b"}
                             radius={[4, 4, 0, 0]}
-                            label={{
+                            // Score labels on bars: desktop only
+                            label={isMobile ? false : {
                               position: "top",
                               fill: tickFill,
                               fontSize: 11,
@@ -644,6 +631,17 @@ function App() {
                         opportunity rankings.
                       </Typography>
                     )}
+
+                    {/* Mobile hint — use tooltip instead */}
+                    {opportunity && isMobile && (
+                      <Typography
+                        variant="caption"
+                        color="textSecondary"
+                        sx={{ display: "block", mt: 1 }}
+                      >
+                        💡 Tap a bar to see the exact score.
+                      </Typography>
+                    )}
                   </CardContent>
                 </Card>
               </>
@@ -651,17 +649,17 @@ function App() {
           </div>
         </Box>
 
+        {/* Footer */}
         <Box sx={{
           mt: 8,
           pt: 4,
           borderTop: mode === "dark"
-            ? "1px solid rgba(0, 212, 255, 0.1)"
-            : "1px solid rgba(0, 121, 107, 0.1)",
+            ? "1px solid rgba(0,212,255,0.1)"
+            : "1px solid rgba(0,121,107,0.1)",
           textAlign: "center",
         }}>
-          <Typography variant="body2" color="textSecondary" sx={{
-            mb: 1,
-          }}>
+          <Typography variant="body2" color="textSecondary"
+                      sx={{ mb: 1 }}>
             Built with{" "}
             <Box component="span" sx={{
               color: mode === "dark" ? "#ff6b9d" : "#ff8f00",
@@ -688,16 +686,13 @@ function App() {
             >
               Francis Olum
             </Box>
-            {" "}
-            (frankTheCodeBoy)
+            {" "}(frankTheCodeBoy)
           </Typography>
           <Typography variant="caption" color="textSecondary">
             CityPulse © 2024-2026 — Urban Intelligence Analytics
           </Typography>
-          <Typography variant="caption" color="textSecondary" sx={{
-            display: "block",
-            mt: 1,
-          }}>
+          <Typography variant="caption" color="textSecondary"
+                      sx={{ display: "block", mt: 1 }}>
             Data Engineering | Full-Stack Development | Cloud Deployment
           </Typography>
         </Box>
