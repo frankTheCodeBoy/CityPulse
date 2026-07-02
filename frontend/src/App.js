@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   Container, Card, CardContent, Typography, Button, Select,
   MenuItem, ThemeProvider, createTheme, CssBaseline, IconButton,
-  CircularProgress, Snackbar, Alert, Box, Divider, useMediaQuery,
-  useTheme
+  CircularProgress, Snackbar, Alert, Box, Divider, useMediaQuery
 } from "@mui/material";
 import { Brightness4, Brightness7 } from "@mui/icons-material";
 import {
@@ -51,7 +50,6 @@ function App() {
   const [error, setError] = useState(null);
   const dashboardRef = useRef();
 
-  const theme = useTheme();
   // true on phones/small tablets
   const isMobile = useMediaQuery("(max-width:768px)");
 
