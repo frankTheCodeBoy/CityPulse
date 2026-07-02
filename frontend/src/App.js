@@ -53,7 +53,7 @@ function App() {
 
   const theme = useTheme();
   // true on phones/small tablets
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isMobile = useMediaQuery("(max-width:768px)");
 
   const getTheme = (mode) =>
     createTheme({
