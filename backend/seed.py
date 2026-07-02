@@ -30,9 +30,9 @@ for city_name in cities_data:
 # -----------------------------------------------
 areas_by_city = {
     "Nairobi": [
-        "CBD", "Westlands", "Kilimani", "Karen", "Ruiru",
+        "CBD", "Westlands", "Kilimani", "Karen",
         "Kibera", "Dagoretti", "Embakasi", "Kasarani",
-        "Upperhill", "Lavington", "South B", "South C", "Mathare"
+        "Upperhill", "Lavington", "South B", "South C",
     ],
     "Mombasa": [
         "Nyali", "Likoni", "Bamburi", "Changamwe",
@@ -81,11 +81,6 @@ nairobi_indicators = {
         "environment_score": 0.9, "infrastructure_score": 0.5,
         "business_activity_score": 0.6
     },
-    "Ruiru": {
-        "population": 120000, "mobility_score": 0.6,
-        "environment_score": 0.5, "infrastructure_score": 0.7,
-        "business_activity_score": 0.7
-    },
     "Kibera": {
         "population": 250000, "mobility_score": 0.4,
         "environment_score": 0.45, "infrastructure_score": 0.5,
@@ -125,11 +120,6 @@ nairobi_indicators = {
         "population": 100000, "mobility_score": 0.57,
         "environment_score": 0.62, "infrastructure_score": 0.66,
         "business_activity_score": 0.71
-    },
-    "Mathare": {
-        "population": 270000, "mobility_score": 0.35,
-        "environment_score": 0.4, "infrastructure_score": 0.45,
-        "business_activity_score": 0.5
     },
 }
 
@@ -228,10 +218,6 @@ nairobi_scores = {
         "health_score": 0.68, "growth_index": 0.70,
         "infra_index": 0.65, "opportunity_score": 0.69
     },
-    "Ruiru": {
-        "health_score": 0.72, "growth_index": 0.73,
-        "infra_index": 0.74, "opportunity_score": 0.71
-    },
     "Kibera": {
         "health_score": 0.65, "growth_index": 0.68,
         "infra_index": 0.6, "opportunity_score": 0.66
@@ -263,10 +249,6 @@ nairobi_scores = {
     "South C": {
         "health_score": 0.71, "growth_index": 0.73,
         "infra_index": 0.7, "opportunity_score": 0.72
-    },
-    "Mathare": {
-        "health_score": 0.60, "growth_index": 0.62,
-        "infra_index": 0.55, "opportunity_score": 0.58
     },
 }
 
