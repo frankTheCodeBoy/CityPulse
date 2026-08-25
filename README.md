@@ -193,16 +193,16 @@ citypulse/
 ---
 
 ## 📝 License
-MIT License © 2026 Frank Olum  
+MIT License © 2026 Francis Olum  
 
 ---
 
 ## 👤 Author
 
-**Frank Olum** — Analytics Engineer & Full‑Stack Developer  
+**Francis Olum** — Analytics Engineer & Full‑Stack Developer  
 
 - 🐙 GitHub: [frankTheCodeBoy](https://github.com/frankTheCodeBoy)  
-- 💼 LinkedIn: [Frank Olum](https://www.linkedin.com/in/francis-olum-tech)  
+- 💼 LinkedIn: [Francis Olum](https://www.linkedin.com/in/francis-olum-tech)  
 
 
 ---
